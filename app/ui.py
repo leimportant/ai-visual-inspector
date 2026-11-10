@@ -40,7 +40,8 @@ class ImagePreviewApp:
     def __init__(self, root):
         self.root = root
         self.root.title("AI Visual Inspector")
-        self.root.geometry("1280x760")
+        self.root.geometry("1180x760")
+        self.root.minsize(960, 640)
 
         self.image_path = self._default_image_path()
         self.image = None
@@ -73,89 +74,230 @@ class ImagePreviewApp:
         return candidates[0]
 
     def _build_ui(self):
-        notebook = ttk.Notebook(self.root)
+        self._configure_styles()
+        shell = ttk.Frame(self.root, style="App.TFrame", padding=(18, 14))
+        shell.pack(fill="both", expand=True)
+
+        header = ttk.Frame(shell, style="App.TFrame")
+        header.pack(fill="x", pady=(0, 12))
+        ttk.Label(header, text="AI VISUAL INSPECTOR", style="Brand.TLabel").pack(anchor="w")
+        ttk.Label(
+            header,
+            text="Ruang kerja gambar  /  Olah, buat, dan sempurnakan",
+            style="Muted.TLabel",
+        ).pack(anchor="w", pady=(2, 0))
+
+        notebook = ttk.Notebook(shell, style="Workspace.TNotebook")
         notebook.pack(fill="both", expand=True)
 
-        preview_tab = ttk.Frame(notebook)
-        generation_tab = ttk.Frame(notebook)
-        background_tab = ttk.Frame(notebook)
-        notebook.add(preview_tab, text="Preview Pengolahan")
-        notebook.add(generation_tab, text="Buat Gambar")
-        notebook.add(background_tab, text="Ganti Background")
+        preview_tab = ttk.Frame(notebook, style="Page.TFrame", padding=14)
+        generation_tab = ttk.Frame(notebook, style="Page.TFrame", padding=14)
+        background_tab = ttk.Frame(notebook, style="Page.TFrame", padding=14)
+        notebook.add(preview_tab, text="  Pengolahan gambar  ")
+        notebook.add(generation_tab, text="  Buat gambar  ")
+        notebook.add(background_tab, text="  Ganti latar  ")
 
-        controls = ttk.Frame(preview_tab, padding=10)
+        controls = ttk.Frame(preview_tab, style="Card.TFrame", padding=14, width=238)
         controls.pack(side="left", fill="y")
+        controls.pack_propagate(False)
 
-        ttk.Button(controls, text="Open Image", command=self.open_image).pack(fill="x", pady=(0, 8))
-        ttk.Button(controls, text="Refresh Preview", command=self.refresh_preview).pack(fill="x", pady=(0, 12))
+        ttk.Label(controls, text="GAMBAR SUMBER", style="Section.TLabel").pack(
+            anchor="w", pady=(0, 8)
+        )
+        ttk.Button(
+            controls,
+            text="Buka gambar",
+            style="Primary.TButton",
+            command=self.open_image,
+        ).pack(fill="x", pady=(0, 6))
+        ttk.Button(
+            controls,
+            text="Perbarui pratinjau",
+            command=self.refresh_preview,
+        ).pack(fill="x", pady=(0, 14))
+        ttk.Separator(controls).pack(fill="x", pady=(0, 12))
+        ttk.Label(controls, text="PENGATURAN PROSES", style="Section.TLabel").pack(
+            anchor="w", pady=(0, 8)
+        )
 
         for label, var, lower, upper in [
-            ("Width", self.width_var, 50, 2000),
-            ("Kernel Size", self.kernel_var, 1, 31),
-            ("Threshold 1", self.threshold1_var, 0, 255),
-            ("Threshold 2", self.threshold2_var, 0, 255),
-            ("Threshold Value", self.threshold_value_var, 0, 255),
-            ("Max Value", self.max_value_var, 0, 255),
-            ("Contour Thickness", self.contour_thickness_var, 1, 10),
+            ("Lebar", self.width_var, 50, 2000),
+            ("Ukuran kernel", self.kernel_var, 1, 31),
+            ("Ambang 1", self.threshold1_var, 0, 255),
+            ("Ambang 2", self.threshold2_var, 0, 255),
+            ("Nilai ambang", self.threshold_value_var, 0, 255),
+            ("Nilai maksimum", self.max_value_var, 0, 255),
+            ("Ketebalan kontur", self.contour_thickness_var, 1, 10),
         ]:
-            frame = ttk.Frame(controls)
-            frame.pack(fill="x", pady=4)
-            ttk.Label(frame, text=label, width=18).pack(side="left")
+            frame = ttk.Frame(controls, style="Card.TFrame")
+            frame.pack(fill="x", pady=3)
+            ttk.Label(frame, text=label, style="Control.TLabel").pack(side="left")
             ttk.Spinbox(
                 frame,
                 from_=lower,
                 to=upper,
                 textvariable=var,
-                width=8,
+                width=7,
+                style="Compact.TSpinbox",
             ).pack(side="right")
 
-        preview_area = ttk.Frame(preview_tab)
+        preview_area = ttk.Frame(preview_tab, style="Page.TFrame", padding=(14, 0, 0, 0))
         preview_area.pack(side="right", fill="both", expand=True)
+        ttk.Label(preview_area, text="Hasil pengolahan", style="PageTitle.TLabel").pack(
+            anchor="w", pady=(0, 10)
+        )
 
         self.preview_frames = []
-        for _ in range(6):
-            panel = ttk.LabelFrame(preview_area, text="Preview", padding=5)
-            panel.pack(side="left", fill="both", expand=True, padx=5, pady=5)
-            label = ttk.Label(panel)
+        preview_grid = ttk.Frame(preview_area, style="Page.TFrame")
+        preview_grid.pack(fill="both", expand=True)
+        for index in range(6):
+            panel = ttk.LabelFrame(
+                preview_grid,
+                text="Preview",
+                style="Card.TLabelframe",
+                padding=6,
+            )
+            panel.grid(
+                row=index // 3,
+                column=index % 3,
+                sticky="nsew",
+                padx=(0 if index % 3 == 0 else 6, 0),
+                pady=(0 if index < 3 else 8, 0),
+            )
+            label = ttk.Label(panel, style="Preview.TLabel", anchor="center")
             label.pack(fill="both", expand=True)
             self.preview_frames.append((panel, label))
+        for column in range(3):
+            preview_grid.columnconfigure(column, weight=1, uniform="preview")
+        for row in range(2):
+            preview_grid.rowconfigure(row, weight=1, uniform="preview")
 
         self._build_generation_ui(generation_tab)
         self._build_background_ui(background_tab)
 
+    def _configure_styles(self):
+        style = ttk.Style(self.root)
+        if "clam" in style.theme_names():
+            style.theme_use("clam")
+        style.configure(".", font=("Segoe UI", 9), foreground="#1D2939")
+        style.configure("App.TFrame", background="#F3F6FA")
+        style.configure("Page.TFrame", background="#F3F6FA")
+        style.configure("Card.TFrame", background="#FFFFFF")
+        style.configure("TLabel", background="#F3F6FA", foreground="#1D2939")
+        style.configure("Brand.TLabel", font=("Segoe UI", 15, "bold"), foreground="#17345C")
+        style.configure("Muted.TLabel", foreground="#667085")
+        style.configure("PageTitle.TLabel", font=("Segoe UI", 13, "bold"), foreground="#17345C")
+        style.configure(
+            "Section.TLabel",
+            background="#FFFFFF",
+            foreground="#667085",
+            font=("Segoe UI", 8, "bold"),
+        )
+        style.configure("Control.TLabel", background="#FFFFFF", foreground="#344054")
+        style.configure("Preview.TLabel", background="#E9EEF5", foreground="#667085")
+        style.configure("TButton", padding=(9, 6), background="#FFFFFF")
+        style.map("TButton", background=[("active", "#EAF0F8")])
+        style.configure(
+            "Primary.TButton",
+            padding=(9, 7),
+            background="#245A9B",
+            foreground="#FFFFFF",
+            font=("Segoe UI", 9, "bold"),
+        )
+        style.map("Primary.TButton", background=[("active", "#1D477B")])
+        style.configure(
+            "Workspace.TNotebook",
+            background="#F3F6FA",
+            borderwidth=0,
+            tabmargins=(0, 0, 0, 0),
+        )
+        style.configure(
+            "Workspace.TNotebook.Tab",
+            padding=(12, 8),
+            background="#E8EDF4",
+            foreground="#475467",
+            font=("Segoe UI", 9, "bold"),
+        )
+        style.map(
+            "Workspace.TNotebook.Tab",
+            background=[("selected", "#FFFFFF")],
+            foreground=[("selected", "#245A9B")],
+        )
+        style.configure("Card.TLabelframe", background="#FFFFFF", bordercolor="#D9E1EA")
+        style.configure(
+            "Card.TLabelframe.Label",
+            background="#FFFFFF",
+            foreground="#344054",
+            font=("Segoe UI", 9, "bold"),
+        )
+        style.configure("Compact.TSpinbox", padding=(4, 3))
+
     def _build_generation_ui(self, parent):
-        content = ttk.Frame(parent, padding=24)
-        content.pack(fill="both", expand=True)
-
+        ttk.Label(parent, text="Buat gambar", style="PageTitle.TLabel").pack(
+            anchor="w", pady=(0, 3)
+        )
         ttk.Label(
-            content,
-            text="Deskripsikan gambar yang ingin dibuat",
-            font=("", 16, "bold"),
-        ).pack(anchor="w", pady=(0, 8))
+            parent,
+            text="Jelaskan objek dan gaya gambar yang ingin dibuat.",
+            style="Muted.TLabel",
+        ).pack(anchor="w", pady=(0, 12))
+
+        body = ttk.Frame(parent, style="Page.TFrame")
+        body.pack(fill="both", expand=True)
+        prompt_panel = ttk.Frame(body, style="Card.TFrame", padding=14, width=320)
+        prompt_panel.pack(side="left", fill="y")
+        prompt_panel.pack_propagate(False)
+        ttk.Label(prompt_panel, text="DESKRIPSI GAMBAR", style="Section.TLabel").pack(
+            anchor="w"
+        )
         ttk.Label(
-            content,
-            text="Contoh: buatkan gambar sepeda motor atau buatkan gambar bunga.",
-        ).pack(anchor="w", pady=(0, 8))
+            prompt_panel,
+            text="Contoh: kelinci di taman atau motor matic berwarna merah.",
+            style="Muted.TLabel",
+            wraplength=285,
+            justify="left",
+        ).pack(anchor="w", pady=(5, 10))
+        self.prompt_input = tk.Text(
+            prompt_panel,
+            height=5,
+            wrap="word",
+            relief="solid",
+            borderwidth=1,
+            highlightthickness=1,
+            highlightbackground="#D0D5DD",
+            highlightcolor="#3974B8",
+            padx=8,
+            pady=7,
+            font=("Segoe UI", 10),
+        )
+        self.prompt_input.pack(fill="x", pady=(0, 10))
 
-        self.prompt_input = tk.Text(content, height=4, wrap="word")
-        self.prompt_input.pack(fill="x", pady=(0, 12))
-
-        actions = ttk.Frame(content)
+        actions = ttk.Frame(prompt_panel, style="Card.TFrame")
         actions.pack(fill="x")
         self.generate_button = ttk.Button(
             actions,
-            text="Buat Gambar",
+            text="Buat gambar",
+            style="Primary.TButton",
             command=self._generate_from_prompt,
         )
-        self.generate_button.pack(side="left")
-        self.generation_status = ttk.Label(actions, text="")
-        self.generation_status.pack(side="left", padx=12)
+        self.generate_button.pack(fill="x")
+        self.generation_status = ttk.Label(
+            prompt_panel,
+            text="Siap",
+            style="Muted.TLabel",
+            wraplength=285,
+        )
+        self.generation_status.pack(anchor="w", pady=(9, 0))
 
-        result_panel = ttk.LabelFrame(content, text="Hasil", padding=8)
-        result_panel.pack(fill="both", expand=True, pady=(16, 0))
+        result_panel = ttk.LabelFrame(
+            body, text="  GENERATED IMAGE  ", style="Card.TLabelframe", padding=8
+        )
+        result_panel.pack(side="right", fill="both", expand=True, padx=(12, 0))
         self.generated_image_label = ttk.Label(
             result_panel,
-            text="Gambar yang dibuat akan tampil di sini.",
+            text="Your generated image will appear here.",
+            style="Preview.TLabel",
+            anchor="center",
         )
         self.generated_image_label.pack(fill="both", expand=True)
 
@@ -225,41 +367,40 @@ class ImagePreviewApp:
         self.root.after(100, self._check_generation_result)
 
     def _build_background_ui(self, parent):
-        content = ttk.Frame(parent, padding=24)
-        content.pack(fill="both", expand=True)
-
-        ttk.Label(
-            content,
-            text="Ganti background gambar",
-            font=("", 16, "bold"),
-        ).pack(anchor="w", pady=(0, 12))
-
-        source_row = ttk.Frame(content)
-        source_row.pack(fill="x", pady=4)
-        ttk.Label(source_row, text="Gambar sumber", width=18).pack(side="left")
+        ttk.Label(parent, text="Ganti background", style="PageTitle.TLabel").pack(
+            anchor="w", pady=(0, 12)
+        )
+        body = ttk.Frame(parent, style="Page.TFrame")
+        body.pack(fill="both", expand=True)
+        controls = ttk.Frame(body, style="Card.TFrame", padding=14, width=350)
+        controls.pack(side="left", fill="y")
+        controls.pack_propagate(False)
+        ttk.Label(controls, text="GAMBAR SUMBER", style="Section.TLabel").pack(anchor="w")
         ttk.Entry(
-            source_row,
+            controls,
             textvariable=self.background_source_var,
             state="readonly",
-        ).pack(side="left", fill="x", expand=True, padx=8)
+        ).pack(fill="x", pady=(6, 5))
         ttk.Button(
-            source_row,
-            text="Pilih Gambar",
+            controls,
+            text="Pilih gambar sumber",
             command=self._choose_background_source,
-        ).pack(side="left")
+        ).pack(fill="x", pady=(0, 12))
+        ttk.Separator(controls).pack(fill="x", pady=(0, 12))
+        ttk.Label(controls, text="JENIS BACKGROUND", style="Section.TLabel").pack(anchor="w")
 
         ttk.Radiobutton(
-            content,
+            controls,
             text="Warna solid",
             variable=self.background_mode_var,
             value="color",
-        ).pack(anchor="w", pady=(12, 4))
+        ).pack(anchor="w", pady=(8, 4))
 
-        color_row = ttk.Frame(content)
-        color_row.pack(fill="x", padx=(24, 0))
+        color_row = ttk.Frame(controls, style="Card.TFrame")
+        color_row.pack(fill="x", padx=(20, 0), pady=(0, 8))
         ttk.Button(
             color_row,
-            text="Pilih Warna",
+            text="Pilih warna",
             command=self._choose_background_color,
         ).pack(side="left")
         ttk.Label(
@@ -268,41 +409,48 @@ class ImagePreviewApp:
         ).pack(side="left", padx=8)
 
         ttk.Radiobutton(
-            content,
-            text="Gambar lain",
+            controls,
+            text="Gunakan gambar lain",
             variable=self.background_mode_var,
             value="image",
-        ).pack(anchor="w", pady=(12, 4))
+        ).pack(anchor="w", pady=(4, 4))
 
-        background_row = ttk.Frame(content)
-        background_row.pack(fill="x", padx=(24, 0))
+        background_row = ttk.Frame(controls, style="Card.TFrame")
+        background_row.pack(fill="x", padx=(20, 0))
         ttk.Entry(
             background_row,
             textvariable=self.background_image_var,
             state="readonly",
-        ).pack(side="left", fill="x", expand=True, padx=(0, 8))
+        ).pack(fill="x", pady=(0, 5))
         ttk.Button(
-            background_row,
-            text="Pilih Background",
+            controls,
+            text="Pilih gambar background",
             command=self._choose_background_image,
-        ).pack(side="left")
+        ).pack(fill="x")
 
-        actions = ttk.Frame(content)
-        actions.pack(fill="x", pady=16)
+        actions = ttk.Frame(controls, style="Card.TFrame")
+        actions.pack(fill="x", pady=(16, 0))
         self.background_button = ttk.Button(
             actions,
-            text="Ganti Background",
+            text="Ganti background",
+            style="Primary.TButton",
             command=self._replace_selected_background,
         )
-        self.background_button.pack(side="left")
-        self.background_status = ttk.Label(actions, text="")
-        self.background_status.pack(side="left", padx=12)
+        self.background_button.pack(fill="x")
+        self.background_status = ttk.Label(
+            controls, text="Siap", style="Muted.TLabel", wraplength=315
+        )
+        self.background_status.pack(anchor="w", pady=(9, 0))
 
-        result_panel = ttk.LabelFrame(content, text="Hasil", padding=8)
-        result_panel.pack(fill="both", expand=True)
+        result_panel = ttk.LabelFrame(
+            body, text="  PRATINJAU HASIL  ", style="Card.TLabelframe", padding=8
+        )
+        result_panel.pack(side="right", fill="both", expand=True, padx=(12, 0))
         self.background_result_label = ttk.Label(
             result_panel,
             text="Hasil penggantian background akan tampil di sini.",
+            style="Preview.TLabel",
+            anchor="center",
         )
         self.background_result_label.pack(fill="both", expand=True)
 
@@ -410,12 +558,12 @@ class ImagePreviewApp:
         )
 
         processed = [
-            ("Original", resized),
+            ("Asli", resized),
             ("Grayscale", grayscale),
-            ("Blurred", blurred),
-            ("Edges", edges),
-            ("Thresholded", thresholded),
-            ("Contours", contour_image),
+            ("Blur", blurred),
+            ("Tepi", edges),
+            ("Threshold", thresholded),
+            ("Kontur", contour_image),
         ]
 
         for (panel, label), (title, image_data) in zip(self.preview_frames, processed):

@@ -1,8 +1,10 @@
 import os
+import re
 from typing import Optional
 
 
-DEFAULT_MODEL_ID = "segmind/tiny-sd"
+DEFAULT_MODEL_ID = "runwayml/stable-diffusion-v1-5"
+_NEGATIVE_PROMPT = "blurry, low quality, distorted, extra limbs, duplicate subjects, text, watermark"
 
 
 class ImageGenerator:
@@ -18,11 +20,49 @@ class ImageGenerator:
         if self._pipeline is None:
             self._load_pipeline()
 
+        prompt, negative_prompt = self._prepare_prompt(prompt)
         return self._pipeline(
             prompt,
-            num_inference_steps=25,
+            num_inference_steps=35,
             guidance_scale=7.5,
+            negative_prompt=negative_prompt,
         ).images[0]
+
+    @staticmethod
+    def _prepare_prompt(prompt: str):
+        prompt = re.sub(
+            r"^(?:(?:tolong|please)\s+)?(?:buatkan|buat)\s+"
+            r"(?:(?:gambar|foto|ilustrasi)\s+)?",
+            "",
+            prompt.strip(),
+            flags=re.IGNORECASE,
+        )
+        prompt = re.sub(r"^(?:gambar|foto|ilustrasi)\s+", "", prompt, flags=re.IGNORECASE)
+
+        if re.search(r"\b(?:motor|skuter)\s+matic\b", prompt, flags=re.IGNORECASE):
+            prompt = re.sub(
+                r"\b(?:motor|skuter)\s+matic\b",
+                "automatic step-through scooter with a flat floorboard and compact wheels",
+                prompt,
+                flags=re.IGNORECASE,
+            )
+            prompt = f"Photorealistic product photo of {prompt}"
+            negative_prompt = (
+                f"{_NEGATIVE_PROMPT}, Harley-Davidson, cruiser motorcycle, chopper"
+            )
+        elif re.search(r"\bkelinci\b", prompt, flags=re.IGNORECASE):
+            prompt = re.sub(
+                r"\b(?:seekor\s+)?kelinci\b",
+                "a real rabbit, a small animal with long ears, soft fur, and four legs",
+                prompt,
+                flags=re.IGNORECASE,
+            )
+            prompt = f"Photorealistic wildlife photo of {prompt}"
+            negative_prompt = _NEGATIVE_PROMPT
+        else:
+            negative_prompt = _NEGATIVE_PROMPT
+
+        return prompt, negative_prompt
 
     def _load_pipeline(self):
         try:
