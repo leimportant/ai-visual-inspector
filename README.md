@@ -14,6 +14,8 @@ This project is intended for learning and experimentation with common image proc
 - Apply binary thresholding to isolate intensity regions
 - Extract and visualize contours from thresholded images
 - Launch a simple Tkinter preview interface for live inspection of transformations
+- Generate new images from text descriptions with a locally run diffusion model
+- Replace an image background with a solid color or another image
 - Save processed outputs to the output directory
 - Unit tests for core image processing functions
 
@@ -98,7 +100,15 @@ To open a simple graphical preview instead of batch processing, run:
 python3 app/main.py --ui
 ```
 
-This launches a Tkinter window where you can open an image, adjust parameters, and preview the transformation results live.
+This launches a Tkinter window where you can open an image, adjust parameters, and preview the transformation results live. The **Buat Gambar** tab accepts a text description and saves generated images to `data/generated/`.
+
+The **Ganti Background** tab can replace the background of an opened image or generated image with a chosen color or another image. Results are saved as PNG files in `data/backgrounds/`. Background removal runs locally; its model is downloaded on first use and cached for later runs.
+
+Image generation runs locally with the `segmind/tiny-sd` model by default. The model is downloaded the first time it is used, so an internet connection is needed for the initial download; subsequent generation uses the cached model. Generation can be slow on CPU. To use a different Diffusers-compatible model or a model directory already on disk, set `AI_VISUAL_INSPECTOR_MODEL` before starting the application.
+
+The generation and background-removal dependencies (`torch`, `diffusers`, `transformers`, `accelerate`, and `rembg`) are included in `requirements.txt`. For GPU acceleration, install the PyTorch build that matches your CUDA setup by following the [PyTorch installation instructions](https://pytorch.org/get-started/locally/).
+
+Run the app with the same Python environment used to install its dependencies. For example, on Linux or macOS with a project virtual environment, use `./.venv/bin/python app/main.py --ui` (and install dependencies with `./.venv/bin/python -m pip install -r requirements.txt`).
 
 ## Image Processing Pipeline
 The processing flow implemented by the project is:
