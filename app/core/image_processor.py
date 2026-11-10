@@ -45,6 +45,65 @@ def apply_gaussian_blur(
     )
 
 
+def apply_threshold(
+    image: np.ndarray,
+    threshold_value: int = 127,
+    max_value: int = 255,
+    threshold_type: int = cv2.THRESH_BINARY,
+) -> np.ndarray:
+    grayscale = image if len(image.shape) == 2 else to_grayscale(image)
+
+    _, thresholded = cv2.threshold(
+        grayscale,
+        threshold_value,
+        max_value,
+        threshold_type,
+    )
+
+    return thresholded
+
+
+def detect_contours(
+    image: np.ndarray,
+    threshold_value: int = 127,
+    max_value: int = 255,
+) -> list[np.ndarray]:
+    thresholded = apply_threshold(
+        image,
+        threshold_value=threshold_value,
+        max_value=max_value,
+        threshold_type=cv2.THRESH_BINARY,
+    )
+
+    contours, _ = cv2.findContours(
+        thresholded,
+        cv2.RETR_EXTERNAL,
+        cv2.CHAIN_APPROX_SIMPLE,
+    )
+
+    return contours
+
+
+def draw_contours(
+    image: np.ndarray,
+    contours: list[np.ndarray],
+    color: tuple[int, int, int] = (0, 255, 0),
+    thickness: int = 2,
+) -> np.ndarray:
+    image_copy = image.copy()
+
+    if len(image_copy.shape) == 2:
+        image_copy = cv2.cvtColor(image_copy, cv2.COLOR_GRAY2BGR)
+
+    return cv2.drawContours(
+        image_copy,
+        contours,
+        -1,
+        color,
+        thickness,
+    )
+
+
 def detect_edges(
     image: np.ndarray,
     threshold1: int = 100,

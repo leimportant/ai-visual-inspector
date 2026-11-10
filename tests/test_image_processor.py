@@ -6,6 +6,9 @@ from app.core.image_processor import (
     to_grayscale,
     resize_image,
     apply_gaussian_blur,
+    apply_threshold,
+    detect_contours,
+    draw_contours,
     detect_edges,
 )
 
@@ -36,6 +39,24 @@ def test_gaussian_blur(sample_image):
 def test_invalid_kernel(sample_image):
     with pytest.raises(ValueError):
         apply_gaussian_blur(sample_image, kernel_size=4)
+
+
+def test_thresholding(sample_image):
+    result = apply_threshold(sample_image, threshold_value=127)
+
+    assert result.shape == sample_image.shape[:2]
+    assert result.dtype == np.uint8
+
+
+def test_contour_detection(sample_image):
+    mask = np.zeros((100, 100), dtype=np.uint8)
+    mask[20:80, 20:80] = 255
+
+    contours = detect_contours(mask, threshold_value=127)
+    result = draw_contours(mask, contours)
+
+    assert len(contours) > 0
+    assert result.shape == (100, 100, 3)
 
 
 def test_edge_detection(sample_image):
